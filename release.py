@@ -1,4 +1,3 @@
-import os
 import re
 import shutil
 import subprocess
@@ -13,7 +12,6 @@ DIST_DIR = ROOT / "dist"
 SPEC_FILE = ROOT / "interact_agent.spec"
 
 ISCC = shutil.which("ISCC.exe") or shutil.which("iscc.exe")
-
 if ISCC is None:
     raise RuntimeError("ISCC.exe not found in PATH.")
 
@@ -24,21 +22,34 @@ OUTPUT_DIR = ROOT / "installer" / "output"
 VERSION_FILE = ROOT / "src" / "agent_version.py"
 
 
-def run(cmd, env=None):
-    subprocess.run(cmd, check=True, env=env)
+def run(cmd):
+    subprocess.run(cmd, check=True)
 
 
 def get_version():
-    text = VERSION_FILE.read_text(encoding="utf8")
+    text = VERSION_FILE.read_text(encoding="utf-8")
+
     match = re.search(r'VERSION\s*=\s*"([^"]+)"', text)
     if not match:
         raise RuntimeError("VERSION not found.")
+
     return match.group(1)
 
 
 def clean():
     shutil.rmtree(BUILD_DIR, ignore_errors=True)
     shutil.rmtree(DIST_DIR, ignore_errors=True)
+
+
+def build_installer(version: str):
+    windows_version = f"{version}.0"
+
+    run([
+        ISCC,
+        f"/DMyAppVersion={version}",
+        f"/DMyVersionInfoVersion={windows_version}",
+        str(INSTALLER_SCRIPT)
+    ])
 
 
 def main():
@@ -61,13 +72,7 @@ def main():
     if not exe.exists():
         raise RuntimeError("Executable not found.")
 
-    env = os.environ.copy()
-    env["INTERACT_VERSION"] = version
-
-    run([
-        ISCC,
-        str(INSTALLER_SCRIPT)
-    ], env=env)
+    build_installer(version)
 
     installer = OUTPUT_DIR / f"InterAct-Desktop-Agent-{version}-Setup.exe"
 
