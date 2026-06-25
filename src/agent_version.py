@@ -17,7 +17,7 @@ Bump rules:
 APP_NAME = "InterAct Desktop Agent"
 COMPANY = "InterAct"
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 AGENT_VERSION = VERSION
 
 PROTOCOL_VERSION = 1
