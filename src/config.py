@@ -34,6 +34,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 8765
+DEFAULT_GITHUB_REPO: str = "Giriz-3407/InterAct-Agent"
 
 # Resolve config file path relative to this module (works both when running
 # as a Python script and when frozen by PyInstaller into an EXE).
@@ -55,13 +56,14 @@ class AgentConfig:
 
     host: str
     port: int
+    github_repo: str
     source: str  # human-readable description of which source won
 
     def ws_url(self) -> str:
         return f"ws://{self.host}:{self.port}"
 
     def __str__(self) -> str:
-        return f"{self.host}:{self.port} (from {self.source})"
+        return f"{self.host}:{self.port} (github_repo={self.github_repo}) (from {self.source})"
 
 
 # ---------------------------------------------------------------------------
@@ -86,6 +88,7 @@ def load_config() -> AgentConfig:
     # ── 3. Start with defaults ─────────────────────────────────────────────
     resolved_host = DEFAULT_HOST
     resolved_port = DEFAULT_PORT
+    resolved_github_repo = DEFAULT_GITHUB_REPO
     resolved_source = "built-in defaults"
 
     # ── 2. agent.cfg ──────────────────────────────────────────────────────
@@ -97,6 +100,8 @@ def load_config() -> AgentConfig:
             if cfg_parser.has_section(section):
                 if cfg_parser.has_option(section, "host"):
                     resolved_host = cfg_parser.get(section, "host").strip()
+                if cfg_parser.has_option(section, "github_repo"):
+                    resolved_github_repo = cfg_parser.get(section, "github_repo").strip()
                 if cfg_parser.has_option(section, "port"):
                     raw_port = cfg_parser.get(section, "port").strip()
                     try:
@@ -129,4 +134,9 @@ def load_config() -> AgentConfig:
                 env_port,
             )
 
-    return AgentConfig(host=resolved_host, port=resolved_port, source=resolved_source)
+    return AgentConfig(
+        host=resolved_host,
+        port=resolved_port,
+        github_repo=resolved_github_repo,
+        source=resolved_source
+    )

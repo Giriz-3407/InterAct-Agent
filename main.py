@@ -37,6 +37,7 @@ from src.ws_server import CursorBridge, start_websocket_server
 from src.config import load_config
 from src.agent_version import AGENT_VERSION, PROTOCOL_VERSION
 from src.ui import SplashWindow, NotificationToast, InteractiveStatusWindow, TrayManager
+from src.updater import UpdateManager
 
 # ── Centralized Single-Instance Constants ───────────────────────────────────
 INTERACT_AGENT_MUTEX: str = "Global\\InterActAgentSingleInstanceMutex"
@@ -181,6 +182,10 @@ class AgentApp:
         self.success_toast.show()
 
         log.info("[Agent] Agent ready")
+
+        # Initialize the Auto-Update manager and run startup check
+        self.update_manager = UpdateManager(AGENT_VERSION, self.cfg.github_repo, parent_window=self.status_window)
+        self.update_manager.check_for_updates(interactive=False)
 
     def _handle_ipc_connection(self) -> None:
         socket = self.local_server.nextPendingConnection()
