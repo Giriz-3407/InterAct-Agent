@@ -19,13 +19,8 @@
 
 #define MyAppName "InterAct Desktop Agent"
 
-#ifndef MyAppVersion
-    #define MyAppVersion "0.0.0"
-#endif
-
-#ifndef MyVersionInfoVersion
-    #define MyVersionInfoVersion "0.0.0.0"
-#endif
+#define MyAppVersion GetEnv("INTERACT_VERSION")
+#define MyVersionInfoVersion GetEnv("INTERACT_VERSION_INFO")
 
 #define MyAppPublisher "InterAct"
 #define MyAppURL "https://github.com/Giriz-3407/InterAct-Agent"

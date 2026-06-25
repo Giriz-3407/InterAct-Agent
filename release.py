@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import subprocess
@@ -22,8 +23,8 @@ OUTPUT_DIR = ROOT / "installer" / "output"
 VERSION_FILE = ROOT / "src" / "agent_version.py"
 
 
-def run(cmd):
-    subprocess.run(cmd, check=True)
+def run(cmd, env=None):
+    subprocess.run(cmd, check=True, env=env)
 
 
 def get_version():
@@ -42,30 +43,35 @@ def clean():
 
 
 def build_installer(version: str):
-    windows_version = f"{version}.0"
+    env = os.environ.copy()
 
-    run([
-        ISCC,
-        f"/DMyAppVersion={version}",
-        f"/DMyVersionInfoVersion={windows_version}",
-        str(INSTALLER_SCRIPT)
-    ])
+    env["INTERACT_VERSION"] = version
+    env["INTERACT_VERSION_INFO"] = f"{version}.0"
+
+    run(
+        [
+            ISCC,
+            str(INSTALLER_SCRIPT),
+        ],
+        env=env,
+    )
 
 
 def main():
-
     version = get_version()
 
     print(f"\nBuilding InterAct Desktop Agent {version}\n")
 
     clean()
 
-    run([
-        sys.executable,
-        "-m",
-        "PyInstaller",
-        str(SPEC_FILE)
-    ])
+    run(
+        [
+            sys.executable,
+            "-m",
+            "PyInstaller",
+            str(SPEC_FILE),
+        ]
+    )
 
     exe = DIST_DIR / "InterActDesktopAgent.exe"
 
