@@ -5,10 +5,10 @@ This guide describes how to build, run, package, and troubleshoot the local **In
 ---
 
 ## Files Modified / Added for Deployment Hardening
-- **`agent/agent_version.py`**: Central version and capability configurations.
-- **`agent/config.py`**: Resolves port settings from environment variables (`INTERACT_AGENT_PORT`), `agent.cfg`, or defaults.
-- **`agent/agent.cfg`**: Editable INI config file bundled next to the executable.
-- **`agent/ws_server.py`**: Sends `agent_info` handshake immediately on connection; routes high-frequency logs to `DEBUG`.
+- **`agent/src/agent_version.py`**: Central version and capability configurations.
+- **`agent/src/config.py`**: Resolves port settings from environment variables (`INTERACT_AGENT_PORT`), `agent.cfg`, or defaults.
+- **`agent/config/agent.cfg`**: Editable INI config file bundled next to the executable.
+- **`agent/src/ws_server.py`**: Sends `agent_info` handshake immediately on connection; routes high-frequency logs to `DEBUG`.
 - **`agent/main.py`**: Resolves config at startup; configures structured logging to both a file (`%LOCALAPPDATA%/InterAct/logs/interact-agent.log` when compiled) and standard error.
 - **`agent/interact_agent.spec`**: PyInstaller spec file defining hidden imports and output configurations.
 - **`frontend/src/lib/desktopAgent.ts`**: Adds exponential backoff reconnect, handshake verification, compatibility checks, and status callbacks.
@@ -42,7 +42,7 @@ pyinstaller --clean interact_agent.spec
 
 Once complete:
 - The compiled executable will be located in **`agent/dist/InterActAgent.exe`**.
-- Copy the configuration template `agent.cfg` to the same folder as `InterActAgent.exe` so testers can customize their port settings.
+- Copy the configuration template `config/agent.cfg` to the same folder as `InterActAgent.exe` so testers can customize their port settings.
 
 ---
 

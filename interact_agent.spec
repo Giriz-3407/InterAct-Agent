@@ -13,8 +13,8 @@ block_cipher = None
 # or we can specify it as a datafile. Let's include agent.cfg in datas so it is always present inside the bundle if needed,
 # and also provide it next to the EXE.
 datas = [
-    ('agent.cfg', '.'),
-    ('agent_version.py', '.'),
+    ('config/agent.cfg', 'config'),
+    ('src/agent_version.py', 'src'),
 ]
 
 hidden_imports = [
@@ -53,7 +53,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='InterActAgent',
+    name='InterActDesktopAgent',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

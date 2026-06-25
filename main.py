@@ -32,11 +32,11 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
-from overlay import LaserPointerOverlay
-from ws_server import CursorBridge, start_websocket_server
-from config import load_config
-from agent_version import AGENT_VERSION, PROTOCOL_VERSION
-from ui import SplashWindow, NotificationToast, InteractiveStatusWindow, TrayManager
+from src.overlay import LaserPointerOverlay
+from src.ws_server import CursorBridge, start_websocket_server
+from src.config import load_config
+from src.agent_version import AGENT_VERSION, PROTOCOL_VERSION
+from src.ui import SplashWindow, NotificationToast, InteractiveStatusWindow, TrayManager
 
 # ── Centralized Single-Instance Constants ───────────────────────────────────
 INTERACT_AGENT_MUTEX: str = "Global\\InterActAgentSingleInstanceMutex"
