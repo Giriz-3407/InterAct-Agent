@@ -31,7 +31,21 @@ jobs:
         shell: powershell
         run: |
           choco install innosetup -y
-          $env:PATH += ";C:\Program Files\Inno Setup 6;C:\Program Files\Inno Setup 7"
+
+          $paths = @(
+            "C:\Program Files\Inno Setup 7",
+            "C:\Program Files (x86)\Inno Setup 7",
+            "C:\Program Files\Inno Setup 6",
+            "C:\Program Files (x86)\Inno Setup 6"
+          )
+
+          foreach ($p in $paths) {
+            if (Test-Path $p) {
+              echo $p | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
+          }
+
+          where.exe ISCC
 
       - name: Build Release
         shell: powershell

@@ -12,7 +12,11 @@ DIST_DIR = ROOT / "dist"
 
 SPEC_FILE = ROOT / "interact_agent.spec"
 
-ISCC = Path(r"C:\Program Files\Inno Setup 7\ISCC.exe")
+ISCC = shutil.which("ISCC.exe") or shutil.which("iscc.exe")
+
+if ISCC is None:
+    raise RuntimeError("ISCC.exe not found in PATH.")
+
 INSTALLER_SCRIPT = ROOT / "installer" / "interact_agent.iss"
 
 OUTPUT_DIR = ROOT / "installer" / "output"
@@ -61,7 +65,7 @@ def main():
     env["INTERACT_VERSION"] = version
 
     run([
-        str(ISCC),
+        ISCC,
         str(INSTALLER_SCRIPT)
     ], env=env)
 
