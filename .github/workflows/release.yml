@@ -1,4 +1,4 @@
-name: Build Release
+name: Build and Release
 
 on:
   push:
@@ -9,12 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  build:
-
+  release:
     runs-on: windows-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -30,15 +28,18 @@ jobs:
           pip install pyinstaller
 
       - name: Install Inno Setup
+        shell: powershell
         run: |
           choco install innosetup -y
+          $env:PATH += ";C:\Program Files\Inno Setup 6;C:\Program Files\Inno Setup 7"
 
       - name: Build Release
+        shell: powershell
         run: |
           python release.py
 
-      - name: Upload Release Asset
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            installer/output/*.exe
+          files: installer/output/*.exe
+          generate_release_notes: true

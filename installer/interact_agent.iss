@@ -4,7 +4,7 @@
 ;====================================================
 
 #define MyAppName "InterAct Desktop Agent"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion GetEnv("INTERACT_VERSION")
 #define MyAppPublisher "InterAct"
 #define MyAppURL "https://github.com/Giriz-3407/InterAct-Agent"
 #define MyAppExeName "InterActDesktopAgent.exe"

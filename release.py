@@ -1,3 +1,5 @@
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,21 +17,33 @@ INSTALLER_SCRIPT = ROOT / "installer" / "interact_agent.iss"
 
 OUTPUT_DIR = ROOT / "installer" / "output"
 
+VERSION_FILE = ROOT / "src" / "agent_version.py"
 
-def run(cmd):
-    print(f"\n> {' '.join(str(c) for c in cmd)}\n")
-    subprocess.run(cmd, check=True)
+
+def run(cmd, env=None):
+    subprocess.run(cmd, check=True, env=env)
+
+
+def get_version():
+    text = VERSION_FILE.read_text(encoding="utf8")
+    match = re.search(r'VERSION\s*=\s*"([^"]+)"', text)
+    if not match:
+        raise RuntimeError("VERSION not found.")
+    return match.group(1)
 
 
 def clean():
-    print("Cleaning old build...")
-
     shutil.rmtree(BUILD_DIR, ignore_errors=True)
     shutil.rmtree(DIST_DIR, ignore_errors=True)
 
 
-def build_exe():
-    print("Building executable...")
+def main():
+
+    version = get_version()
+
+    print(f"\nBuilding InterAct Desktop Agent {version}\n")
+
+    clean()
 
     run([
         sys.executable,
@@ -38,54 +52,26 @@ def build_exe():
         str(SPEC_FILE)
     ])
 
-
-def verify_exe():
     exe = DIST_DIR / "InterActDesktopAgent.exe"
 
     if not exe.exists():
-        raise FileNotFoundError(exe)
+        raise RuntimeError("Executable not found.")
 
-    print("Executable verified.")
-
-
-def build_installer():
-    print("Building installer...")
+    env = os.environ.copy()
+    env["INTERACT_VERSION"] = version
 
     run([
         str(ISCC),
         str(INSTALLER_SCRIPT)
-    ])
+    ], env=env)
 
+    installer = OUTPUT_DIR / f"InterAct-Desktop-Agent-{version}-Setup.exe"
 
-def verify_installer():
+    if not installer.exists():
+        raise RuntimeError("Installer not found.")
 
-    installers = list(OUTPUT_DIR.glob("*.exe"))
-
-    if not installers:
-        raise FileNotFoundError("Installer not found.")
-
-    print("\nRelease build successful.\n")
-
-    print("Installer:")
-
-    for installer in installers:
-        print(installer)
-
-
-def main():
-
-    if not ISCC.exists():
-        raise FileNotFoundError(ISCC)
-
-    clean()
-
-    build_exe()
-
-    verify_exe()
-
-    build_installer()
-
-    verify_installer()
+    print("\nSUCCESS\n")
+    print(installer)
 
 
 if __name__ == "__main__":
