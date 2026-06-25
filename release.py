@@ -43,17 +43,13 @@ def clean():
 
 
 def build_installer(version: str):
-    env = os.environ.copy()
-
-    env["INTERACT_VERSION"] = version
-    env["INTERACT_VERSION_INFO"] = f"{version}.0"
-
     run(
         [
             ISCC,
+            f"/DMyAppVersion={version}",
+            f"/DMyVersionInfoVersion={version}.0",
             str(INSTALLER_SCRIPT),
-        ],
-        env=env,
+        ]
     )
 
 
