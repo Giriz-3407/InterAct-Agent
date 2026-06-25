@@ -45,11 +45,11 @@ DisableProgramGroupPage=yes
 
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
-VersionInfoVersion={#MyAppVersion}
+VersionInfoVersion=1.0.1.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=InterAct Desktop Agent Installer
 VersionInfoProductName={#MyAppName}
-VersionInfoProductVersion={#MyAppVersion}
+VersionInfoProductVersion=1.0.1
 
 ;----------------------------------------------------
 ; Branding (Enable after assets are created)
