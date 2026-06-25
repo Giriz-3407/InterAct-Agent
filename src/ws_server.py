@@ -270,9 +270,34 @@ def _dispatch(bridge: CursorBridge, raw: str, addr: Any) -> None:
 # asyncio server entrypoint
 # ---------------------------------------------------------------------------
 
+async def _process_request(connection, request):
+    """
+    Intercept HTTP requests. Specifically, handle /status to allow the browser
+    to detect whether the Desktop Agent is running and check its capabilities.
+    """
+    if request.path.rstrip("/") == "/status":
+        from websockets.datastructures import Headers
+        from websockets.http11 import Response
+        status_data = {
+            "status": "ok",
+            "agent_version": AGENT_VERSION,
+            "protocol_version": PROTOCOL_VERSION,
+            "capabilities": CAPABILITIES,
+        }
+        body = json.dumps(status_data).encode("utf-8")
+        headers = Headers([
+            ("Content-Type", "application/json"),
+            ("Access-Control-Allow-Origin", "*"),
+            ("Access-Control-Allow-Methods", "GET, OPTIONS"),
+            ("Access-Control-Allow-Headers", "*"),
+        ])
+        return Response(200, "OK", headers, body)
+    return None
+
+
 async def _server_main(bridge: CursorBridge, host: str, port: int) -> None:
     handler = _make_handler(bridge, host, port)
-    async with websockets.serve(handler, host, port):
+    async with websockets.serve(handler, host, port, process_request=_process_request):
         log.info("WebSocket server listening on ws://%s:%d", host, port)
         bridge.server_started.emit()
         await asyncio.Future()   # run forever until the daemon thread is killed
