@@ -190,7 +190,7 @@ class AgentApp:
         log.info("[Agent] Agent ready")
 
         # Initialize the Auto-Update manager and run startup check
-        self.update_manager = UpdateManager(AGENT_VERSION, self.cfg.github_repo, parent_window=self.status_window)
+        self.update_manager = UpdateManager(AGENT_VERSION, self.cfg.backend_url, parent_window=self.status_window)
         self.update_manager.check_for_updates(interactive=False)
 
     def _handle_ipc_connection(self) -> None:

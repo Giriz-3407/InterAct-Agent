@@ -78,51 +78,45 @@ def validate_installer(filepath: str) -> bool:
 class UpdateCheckWorker(QThread):
     finished = Signal(bool, dict, str)  # success, release_info, error_msg
 
-    def __init__(self, current_version: str, github_repo: str):
+    def __init__(self, current_version: str, backend_url: str):
         super().__init__()
         self.current_version = current_version
-        self.github_repo = github_repo
+        self.backend_url = backend_url
 
     def run(self):
         try:
-            url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
+            url = f"{self.backend_url.rstrip('/')}/api/version/latest"
             headers = {"User-Agent": f"InterAct-Desktop-Agent/{self.current_version}"}
             
             response = requests.get(url, headers=headers, timeout=CHECK_TIMEOUT)
             
             if response.status_code in (403, 429):
-                self.finished.emit(False, {}, "GitHub API rate limit exceeded. Please try again later.")
+                self.finished.emit(False, {}, "API rate limit exceeded. Please try again later.")
                 return
             elif response.status_code != 200:
-                self.finished.emit(False, {}, f"GitHub returned error status: {response.status_code}")
+                self.finished.emit(False, {}, f"Backend API returned error status: {response.status_code}")
                 return
                 
             data = response.json()
-            if not isinstance(data, dict) or "tag_name" not in data:
-                self.finished.emit(False, {}, "Malformed API response: missing tag_name.")
+            if not isinstance(data, dict) or "version" not in data:
+                self.finished.emit(False, {}, "Malformed API response: missing version.")
                 return
                 
-            latest_version = data["tag_name"]
-            body = data.get("body", "No release notes available.")
-            assets = data.get("assets", [])
+            latest_version = data["version"]
+            body = data.get("release_notes", "No release notes available.")
             
-            # Find installer asset (.exe)
-            download_url = None
-            for asset in assets:
-                name = asset.get("name", "")
-                if name.endswith(".exe"):
-                    download_url = asset.get("browser_download_url")
-                    break
+            # Resolve relative download URL to absolute URL
+            raw_download_url = data.get("download_url", "/api/download/windows")
+            if raw_download_url.startswith("http://") or raw_download_url.startswith("https://"):
+                download_url = raw_download_url
+            else:
+                download_url = self.backend_url.rstrip('/') + '/' + raw_download_url.lstrip('/')
             
             # Compare versions
             current_clean = self.current_version.strip().lstrip('vV')
             latest_clean = latest_version.strip().lstrip('vV')
             
             if Version(latest_clean) > Version(current_clean):
-                if not download_url:
-                    self.finished.emit(False, {}, "Latest release has no installer asset (.exe).")
-                    return
-                
                 release_info = {
                     "latest_version": latest_version,
                     "release_notes": body,
@@ -632,10 +626,10 @@ class UpdateDialog(QWidget):
         painter.drawText(46, 16, 200, 24, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, "Software Update")
 
 class UpdateManager(QObject):
-    def __init__(self, current_version: str, github_repo: str, parent_window=None):
+    def __init__(self, current_version: str, backend_url: str, parent_window=None):
         super().__init__()
         self.current_version = current_version
-        self.github_repo = github_repo
+        self.backend_url = backend_url
         self.parent_window = parent_window
         self.check_worker = None
         self.dialog = None
@@ -651,9 +645,9 @@ class UpdateManager(QObject):
             self._toast = NotificationToast("Checking for updates...", is_success=True)
             self._toast.show()
         else:
-            log.info(f"Startup check for updates initiated against '{self.github_repo}'...")
+            log.info(f"Startup check for updates initiated against '{self.backend_url}'...")
 
-        self.check_worker = UpdateCheckWorker(self.current_version, self.github_repo)
+        self.check_worker = UpdateCheckWorker(self.current_version, self.backend_url)
         self.check_worker.finished.connect(self._on_check_finished)
         self.check_worker.start()
 

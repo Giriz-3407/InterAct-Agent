@@ -35,6 +35,7 @@ log = logging.getLogger(__name__)
 DEFAULT_HOST: str = "127.0.0.1"
 DEFAULT_PORT: int = 8765
 DEFAULT_GITHUB_REPO: str = "Giriz-3407/InterAct-Agent"
+DEFAULT_BACKEND_URL: str = "http://localhost:8000"
 
 # Resolve config file path relative to this module (works both when running
 # as a Python script and when frozen by PyInstaller into an EXE).
@@ -57,6 +58,7 @@ class AgentConfig:
     host: str
     port: int
     github_repo: str
+    backend_url: str
     source: str  # human-readable description of which source won
 
     def ws_url(self) -> str:
@@ -89,6 +91,7 @@ def load_config() -> AgentConfig:
     resolved_host = DEFAULT_HOST
     resolved_port = DEFAULT_PORT
     resolved_github_repo = DEFAULT_GITHUB_REPO
+    resolved_backend_url = DEFAULT_BACKEND_URL
     resolved_source = "built-in defaults"
 
     # ── 2. agent.cfg ──────────────────────────────────────────────────────
@@ -102,6 +105,8 @@ def load_config() -> AgentConfig:
                     resolved_host = cfg_parser.get(section, "host").strip()
                 if cfg_parser.has_option(section, "github_repo"):
                     resolved_github_repo = cfg_parser.get(section, "github_repo").strip()
+                if cfg_parser.has_option(section, "backend_url"):
+                    resolved_backend_url = cfg_parser.get(section, "backend_url").strip()
                 if cfg_parser.has_option(section, "port"):
                     raw_port = cfg_parser.get(section, "port").strip()
                     try:
@@ -138,5 +143,6 @@ def load_config() -> AgentConfig:
         host=resolved_host,
         port=resolved_port,
         github_repo=resolved_github_repo,
+        backend_url=resolved_backend_url,
         source=resolved_source
     )
