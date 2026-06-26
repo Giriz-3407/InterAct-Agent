@@ -551,14 +551,30 @@ class UpdateDialog(QWidget):
     def _launch_installer(self, filepath: str):
         try:
             if validate_installer(filepath):
-                log.info(f"Launching installer: {filepath}")
-                try:
-                    os.startfile(filepath)
-                except AttributeError:
-                    subprocess.Popen([filepath], shell=True)
+                log.info(f"Launching installer asynchronously after shutdown: {filepath}")
                 
-                # Delay shutdown slightly (~1 second) to allow Windows to initialize process
-                QTimer.singleShot(1000, QApplication.quit)
+                pid = os.getpid()
+                CREATE_NO_WINDOW = 0x08000000
+                DETACHED_PROCESS = 0x00000008
+                creationflags = CREATE_NO_WINDOW | DETACHED_PROCESS
+
+                # Detached PowerShell script that waits for our PID to terminate, then runs the installer
+                cmd_args = [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    f"Start-Sleep -Milliseconds 100; "
+                    f"$p = Get-Process -Id {pid} -ErrorAction SilentlyContinue; "
+                    f"if ($p) {{ $p | Wait-Process }}; "
+                    f"Start-Process -FilePath '{filepath}'"
+                ]
+                
+                subprocess.Popen(cmd_args, creationflags=creationflags)
+                
+                # Initiate immediate graceful shutdown of the Qt application
+                log.info("[Updater] Spawning updater process and quitting application...")
+                QApplication.quit()
             else:
                 raise ValueError("Downloaded file integrity check failed.")
         except Exception as e:
