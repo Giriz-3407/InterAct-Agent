@@ -180,8 +180,8 @@ class AgentApp:
         # Create tray manager
         self.tray_manager = TrayManager(QApplication.instance(), self)
 
-        # Open the control window on startup
-        self.status_window.show_activated()
+        # Do not automatically open the control window on startup.
+        # It remains running in the background tray and is accessible on demand.
 
         # Show success startup toast notification
         self.success_toast = NotificationToast("✓ InterAct Collaboration Agent Running", is_success=True)
