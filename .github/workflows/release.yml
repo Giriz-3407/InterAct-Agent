@@ -52,6 +52,31 @@ jobs:
         run: |
           python release.py
 
+      - name: Clean existing release assets
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          write-host "Checking if release exists for tag: $tag"
+          $ErrorActionPreference = 'Continue'
+          gh release view $tag --json name >$null 2>&1
+          if ($LASTEXITCODE -eq 0) {
+              write-host "Release exists. Querying assets..."
+              $assets = gh release view $tag --json assets --jq '.assets[].name' 2>$null
+              if ($assets) {
+                  foreach ($asset in $assets) {
+                      if ($asset -ne $null -and $asset -ne "") {
+                          write-host "Deleting existing asset: $asset"
+                          gh release delete-asset $tag $asset -y 2>&1
+                      }
+                  }
+              }
+          } else {
+              write-host "No existing release found for tag $tag. It will be created."
+          }
+          $LASTEXITCODE = 0
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:

@@ -40,6 +40,8 @@ def get_version():
 def clean():
     shutil.rmtree(BUILD_DIR, ignore_errors=True)
     shutil.rmtree(DIST_DIR, ignore_errors=True)
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def build_installer(version: str):

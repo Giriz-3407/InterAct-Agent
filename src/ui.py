@@ -470,10 +470,17 @@ class StatusWindow(QWidget):
         layout.addWidget(frame)
 
     def show_activated(self) -> None:
-        """Show window, raise to top, and trigger visual attention."""
+        """Single source of truth to restore, show, activate, and raise the window."""
+        if self.isMinimized():
+            self.showNormal()
         self.show()
         self.raise_()
         self.activateWindow()
+
+    def closeEvent(self, event) -> None:
+        """Override close event to hide the window instead of closing it."""
+        event.ignore()
+        self.hide()
 
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
@@ -598,10 +605,11 @@ class InteractiveStatusWindow(StatusWindow):
 class TrayManager(QObject):
     """Manages the QSystemTrayIcon, its menu actions, and dashboard links."""
 
-    def __init__(self, parent_app: QApplication, status_window: QWidget) -> None:
+    def __init__(self, parent_app: QApplication, agent_app: Any) -> None:
         super().__init__()
         self._app = parent_app
-        self._status_window = status_window
+        self._agent_app = agent_app
+        self._status_window = agent_app.status_window
 
         self._tray_icon = QSystemTrayIcon(create_tray_icon(), self)
         self._tray_icon.setToolTip("InterAct Collaboration Agent")
@@ -631,39 +639,68 @@ class TrayManager(QObject):
                 background-color: #4f46e5;
                 color: #ffffff;
             }
+            QMenu::item:disabled {
+                color: #6b7280;
+            }
         """)
 
-        # Open Status (bold)
-        open_action = menu.addAction("Open Status")
-        font = open_action.font()
+        # Title (disabled)
+        title_action = menu.addAction("InterAct Desktop Agent")
+        title_action.setEnabled(False)
+        font = title_action.font()
         font.setBold(True)
-        open_action.setFont(font)
-        open_action.triggered.connect(self._show_status)
+        title_action.setFont(font)
+
+        # Status (disabled)
+        status_action = menu.addAction("Status: Running")
+        status_action.setEnabled(False)
 
         menu.addSeparator()
 
-        # Restart
+        # Open (bold)
+        open_action = menu.addAction("Open")
+        font = open_action.font()
+        font.setBold(True)
+        open_action.setFont(font)
+        open_action.triggered.connect(self._open_or_toggle_status)
+
+        # Check for Updates
+        update_action = menu.addAction("Check for Updates")
+        update_action.triggered.connect(self._check_for_updates)
+
+        # Restart Agent
         restart_action = menu.addAction("Restart Agent")
         if hasattr(self._status_window, "restart_requested"):
             restart_action.triggered.connect(self._status_window.restart_requested.emit)
 
-        # Quit
-        quit_action = menu.addAction("Quit Agent")
-        quit_action.triggered.connect(self._app.quit)
+        # Exit
+        exit_action = menu.addAction("Exit")
+        exit_action.triggered.connect(self._app.quit)
 
         self._tray_icon.setContextMenu(menu)
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
-            self._show_status()
+            self._open_or_toggle_status()
 
-    def _show_status(self) -> None:
-        if hasattr(self._status_window, "show_activated"):
-            self._status_window.show_activated()
+    def _open_or_toggle_status(self) -> None:
+        window = self._status_window
+        if not window:
+            return
+        
+        # Toggle: hide if visible, not minimized, and focused; otherwise show/activate
+        if window.isVisible() and not window.isMinimized() and window.isActiveWindow():
+            window.hide()
         else:
-            self._status_window.show()
-            self._status_window.raise_()
-            self._status_window.activateWindow()
+            window.show_activated()
+
+    def _check_for_updates(self) -> None:
+        if hasattr(self._agent_app, "update_manager") and self._agent_app.update_manager:
+            self._agent_app.update_manager.check_for_updates(interactive=True)
+
+    def cleanup(self) -> None:
+        """Clean up resources and hide the tray icon to prevent it from lingering."""
+        self._tray_icon.hide()
 
     def show_message(self, title: str, message: str) -> None:
         """Trigger native system tray balloon message."""

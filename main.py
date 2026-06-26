@@ -125,6 +125,9 @@ class AgentApp:
     def run(self, app: QApplication) -> int:
         log.info("[Agent] Starting services")
 
+        # Connect aboutToQuit signal for clean exit cleanup
+        app.aboutToQuit.connect(self.cleanup)
+
         # 1. Start QLocalServer to listen for duplicate launches
         QLocalServer.removeServer(INTERACT_AGENT_IPC_SERVER)
         self.local_server = QLocalServer()
@@ -170,12 +173,15 @@ class AgentApp:
         # Render overlay cursors
         self.overlay.show()
 
-        # Create status window (initially hidden)
+        # Create status window (initially open/shown on first launch)
         self.status_window = InteractiveStatusWindow(self.cfg.host, self.cfg.port)
         self.status_window.restart_requested.connect(self._handle_restart)
 
         # Create tray manager
-        self.tray_manager = TrayManager(QApplication.instance(), self.status_window)
+        self.tray_manager = TrayManager(QApplication.instance(), self)
+
+        # Open the control window on startup
+        self.status_window.show_activated()
 
         # Show success startup toast notification
         self.success_toast = NotificationToast("✓ InterAct Collaboration Agent Running", is_success=True)
@@ -204,12 +210,48 @@ class AgentApp:
 
     def _handle_restart(self) -> None:
         log.info("[Agent] Restarting agent...")
+        
+        # 1. Clean shutdown of current instance first
+        self.cleanup()
+        
+        # Release the single-instance mutex explicitly so the restarted process can acquire it immediately
+        global _MUTEX_HOLDER
+        if _MUTEX_HOLDER:
+            import ctypes
+            ctypes.windll.kernel32.CloseHandle(_MUTEX_HOLDER)
+            _MUTEX_HOLDER = None
+            log.info("[Agent] Mutex released for restart.")
+
+        # 2. Start a new agent process
         import subprocess
         if getattr(sys, "frozen", False):
             subprocess.Popen([sys.executable] + sys.argv[1:])
         else:
-            subprocess.Popen([sys.executable, __file__] + sys.argv[1:])
+            main_script = Path(__file__).resolve()
+            subprocess.Popen([sys.executable, str(main_script)] + sys.argv[1:])
+            
+        # 3. Exit the current process
         QApplication.quit()
+
+    def cleanup(self) -> None:
+        """Clean up resources before quitting application."""
+        if getattr(self, "_cleaned_up", False):
+            return
+        self._cleaned_up = True
+        
+        log.info("[Agent] Cleaning up resources before exit.")
+        if self.local_server:
+            self.local_server.close()
+            log.info("[Agent] IPC local server closed.")
+        if self.tray_manager:
+            self.tray_manager.cleanup()
+            log.info("[Agent] Tray icon removed.")
+        if hasattr(self, "update_manager") and self.update_manager:
+            if self.update_manager.check_worker and self.update_manager.check_worker.isRunning():
+                self.update_manager.check_worker.quit()
+                self.update_manager.check_worker.wait()
+            if self.update_manager.dialog:
+                self.update_manager.dialog.close()
 
 
 # ---------------------------------------------------------------------------
@@ -233,7 +275,7 @@ def main() -> int:
     if last_error == ERROR_ALREADY_EXISTS:
         log.warning("[Agent] Existing instance detected — aborting secondary launch.")
         
-        # We need a brief QApplication to show the toast and send the socket signal
+        # We need a brief QApplication to send the socket signal
         app = QApplication(sys.argv)
         
         # Send activation command to primary instance
@@ -246,14 +288,7 @@ def main() -> int:
 
         # Close local duplicate mutex handle to be clean
         kernel32.CloseHandle(mutex_handle)
-
-        # Show notification toast from this secondary process
-        toast = NotificationToast("InterAct Agent is already running.", is_success=False)
-        toast.show()
-
-        # Let the notification run its course and exit
-        QTimer.singleShot(3200, app.quit)
-        return app.exec()
+        return 0
 
     # Lock successfully acquired! Keep handle alive
     _MUTEX_HOLDER = mutex_handle
